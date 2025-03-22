@@ -1,0 +1,13 @@
+# .gitignore
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.parquet
+*.log
+.airflow/
+logs/
+dags/__pycache__/
+plugins/__pycache__/
+*.sqlite
+*.db

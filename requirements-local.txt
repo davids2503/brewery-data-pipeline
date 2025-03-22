@@ -1,0 +1,6 @@
+apache-airflow==2.7.2
+boto3
+requests
+pandas
+pyarrow
+python-dotenv

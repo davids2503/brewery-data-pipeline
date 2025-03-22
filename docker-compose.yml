@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres_db:/var/lib/postgresql/data
+
+  airflow-webserver:
+    env_file: .env
+    image: apache/airflow:2.7.2-python3.10
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      PYTHONPATH: /opt/airflow
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__FERNET_KEY: ''
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      AIRFLOW__SCHEDULER__USE_JOB_SCHEDULE: 'false'
+      AIRFLOW__API__AUTH_BACKEND: 'airflow.api.auth.backend.basic_auth'
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION}
+      AIRFLOW__WEBSERVER__INSTANCE_NAME: "LocalEnv"
+      AIRFLOW__WEBSERVER__SECRET_KEY: "3oZ4xT9vxdEfLTORkLSgrJtuPgPuycXXmNb_heftepE"
+      AIRFLOW__LOGGING__REMOTE_LOGGING: "False"
+
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./plugins:/opt/airflow/plugins
+      - ./requirements.txt:/requirements.txt
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "8080:8080"
+    command: bash -c "pip install --no-cache-dir -r /requirements.txt && airflow db migrate && airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com && airflow webserver"
+
+  airflow-scheduler:
+    image: apache/airflow:2.7.2-python3.10
+    restart: always
+    depends_on:
+      - airflow-webserver
+    env_file: .env  # <--- ADICIONE ESTA LINHA
+    environment:
+      PYTHONPATH: /opt/airflow
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__WEBSERVER__SECRET_KEY: "3oZ4xT9vxdEfLTORkLSgrJtuPgPuycXXmNb_heftepE"
+      AIRFLOW__LOGGING__REMOTE_LOGGING: "False"
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./plugins:/opt/airflow/plugins
+      - ./requirements.txt:/requirements.txt
+      - /etc/localtime:/etc/localtime:ro
+    command: bash -c "pip install --no-cache-dir -r /requirements.txt && airflow scheduler"
+
+volumes:
+  postgres_db:
